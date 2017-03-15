@@ -125,6 +125,8 @@
                     <field name="country_id"/>
                     <field name="partner_vat"/>
                     <field name="partner_id"/>
+                    <field name="total_service"/>
+                    <field name="total_consu_stora"/>
                     <field name="total_operation_amount"/>
                     <field name="total_origin_amount"/>
                     <field name="period_type"/>
@@ -146,6 +148,8 @@
                                 <field name="partner_id"/>
                                 <field name="country_id"/>
                                 <field name="partner_vat" on_change="onchange_format_partner_vat(partner_vat,country_id)"/>
+                                <field name="total_service"/>
+                                <field name="total_consu_stora"/>
                                 <field name="total_operation_amount"/>
                                 <field name="total_origin_amount"/>
                             </group>

@@ -109,6 +109,9 @@ class Mod349(models.Model):
         obj_detail = self.env['l10n.es.aeat.mod349.partner_refund_detail']
         partner = refunds[0].commercial_partner_id
         record = {}
+        total_service = {}
+        total_consu_stora = {}
+        # refund == account.invoice()
         for refund in refunds:
             origin_inv = refund.origin_invoices_ids[:1]
             if origin_inv.state in ('open', 'paid'):
@@ -119,7 +122,19 @@ class Mod349(models.Model):
                     # creates a dictionary key with partner_record id to
                     # after recover it
                     key = refund_details.partner_record_id
-                    record[key] = record.get(key, []) + [refund]
+                    if key not in total_service:
+                        total_service[key] = 0
+                    if key not in total_consu_stora:
+                        total_consu_stora[key] = 0
+
+                    for invoice_refound in refund:
+                        for line in invoice_refound.invoice_line:
+                            if line.product_id.type == 'service':
+                                total_service[key] += line.price_subtotal
+                            elif line.product_id.type in ['consu', 'product']:
+                                total_consu_stora[key] += line.price_subtotal
+                    record[key] = record.get(key, []) + [refund], total_service[key], total_consu_stora[key]
+
         # recorremos nuestro diccionario y vamos creando registros
         for partner_rec in record:
             record_created = obj.create(
@@ -130,12 +145,15 @@ class Mod349(models.Model):
                  'operation_key': refunds[0].operation_key,
                  'country_id': partner.country_id.id,
                  'total_operation_amount': partner_rec.total_operation_amount -
-                    sum([x.cc_amount_untaxed for x in record[partner_rec]]),
+                    sum([x.cc_amount_untaxed for x in record[partner_rec][0]]),
+                'total_service': record[partner_rec][1],
+                'total_consu_stora': record[partner_rec][2],
                  'total_origin_amount': partner_rec.total_operation_amount,
                  'period_type': partner_rec.report_id.period_type,
                  'fiscalyear_id': partner_rec.report_id.fiscalyear_id.id})
             # Creation of partner detail lines
-            for refund in record[partner_rec]:
+            for refund in record[partner_rec][0]:
+                print refund
                 obj_detail.create(
                     {'refund_id': record_created.id,
                      'invoice_id': refund.id,
@@ -376,6 +394,10 @@ class Mod349PartnerRefund(models.Model):
     fiscalyear_id = fields.Many2one(
         comodel_name='account.fiscalyear', string='Fiscal year')
     total_operation_amount = fields.Float(string='Total operation amount')
+    total_service = fields.Float(
+        string='Total productos servicio')
+    total_consu_stora = fields.Float(
+        string='Total consumible y almacenable')
     total_origin_amount = fields.Float(
         string='Original amount', help="Refund original amount")
     partner_refund_ok = fields.Boolean(
